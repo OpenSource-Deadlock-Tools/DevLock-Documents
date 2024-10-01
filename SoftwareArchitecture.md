@@ -4,9 +4,13 @@ This chart is a high-level overview of the software architecture of the project.
 
 _It is a work in progress and will be updated as the project progresses._
 
+# Data & Analytics
+
+## Overview
 ```mermaid
 flowchart TB
     subgraph D["Data & Analytics"]
+        direction TB
         S["S3-Storage"]
         
         DS["
@@ -14,67 +18,75 @@ flowchart TB
             Active Matches, HLTV-Stream, Metadata
         "]
         DS -- Match Data --> S
-        DS -- Add to Validate Queue --> MBV
-        DS -- Publish Events --> MBPS
+        DS -- Add to Validate Queue --> RMQV
+        DS -- Publish Events --> RMQPS
         
         H["Housekeeper"]
         H == Scan for unprocessed old Matches === S
         H == Compress and Archive old Matches === S
-        H -- Add to Validate Queue --> MBV
+        H -- Add to Validate Queue --> RMQV
         
-        subgraph MB["Message Broker"]
-            MBV["Validate Queue"]
-            MBI["Ingest Queue (Exchange)"]
-            MBPS["Pub/Sub"]
+        subgraph RMQ["RabbitMQ"]
+            RMQV["Validate Queue"]
+            RMQI["Ingest Queue (Exchange)"]
+            RMQPS["Pub/Sub"]
         end
         
         V["Validator & Parser"]
-        MBV -- Get from Validate Queue --> V
+        RMQV -- Get from Validate Queue --> V
         S -- Match Data --> V
         V -- Parsed Match Data --> S
-        V -- Add to Parser Queue --> MBI
+        V -- Add to Parser Queue --> RMQI
         
-        subgraph ingest["Ingest Workers"]
-            IP["DBMS 1 Ingest Worker"]
-            IC["DBMS 2 Ingest Worker"]
+        subgraph I["Ingest Workers"]
+            direction TB
+            I1["DBMS 1 Ingest Worker"]
+            I2["DBMS 2 Ingest Worker"]
         end
+        RMQI -- Get from Ingest Queue --> I
+        S -- Parsed Match Data --> I
         
-        subgraph databases["Databases"]
-            DBP["DBMS 1"]
-            DBC["DBMS 2"]
+        subgraph DB["Databases"]
+            direction TB
+            DB1["DBMS 1"]
+            DB2["DBMS 2"]
         end
-        
-        MBI -- Get from Ingest Queue --> IC
-        MBI -- Get from Ingest Queue --> IP
-        S -- Parsed Match Data --> IP
-        S -- Parsed Match Data --> IC
-        IC -- Ingest Data --> DBC
-        IP -- Ingest Data --> DBP
+        I -- Ingest Data --> DB
     end
     
-    subgraph T["Telemetry & Metrics"]
-        %% Not designed yet
-        P["Prometheus"]
-        G["Grafana"]
-        P -- Metrics --> G
-    end
-    
-    subgraph B["Backend"]
-    %% Not designed yet
-    end
-    DBC -- Application Data --> B
-    DBP -- Application Data --> B
+    E["External"]
+    DB == Application Data ==> E
+    D == Telemetry & Metrics ==> E
+    RMQPS == Game Events ==> E
+```
 
-    subgraph AP["Admin Panel"]
-    %% Not designed yet
-    end
-    B -- Application Data --> AP
-    
-    subgraph F["Public Frontend"]
-    %% Not designed yet
-    end
-    B -- Application Data --> F
+## Data Scrapers
 
-    SU["Live Event Subscribers"]
-    MBPS == Subscribe ==>SU
+### HLTV-Spectator
+```mermaid
+flowchart TB
+    subgraph M["Match Manager"]
+        direction TB
+        DB["Database"]
+        MM["Match Manager"]
+        MM === DB
+    end
+
+    subgraph SB["Spectator Bots"]
+        direction TB
+        SB1["Spectator Bot 1"]
+        SB2["Spectator Bot 2"]
+    end
+
+    subgraph RMQ["RabbitMQ"]
+        direction BT
+        EQ["Error Queue"]
+        SQ["Spectate Queue"]
+        SQ -- NACK --> EQ
+    end
+
+    M -- Matches to Spectate --> RMQ
+    RMQ -- Match to Spectate --> SB
+    SB -- ACK / NACK --> RMQ
+    RMQ -- Failed Matches --> M
 ```
