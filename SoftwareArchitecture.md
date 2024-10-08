@@ -90,3 +90,22 @@ flowchart TB
     SB -- ACK / NACK --> RMQ
     RMQ -- Failed Matches --> M
 ```
+
+### User-Ingest Server
+```mermaid
+flowchart TB
+    U["User"]
+    subgraph UI["User-Ingest Server"]
+        UIA["User-Ingest API"]
+        VR["Valve Replay Server"]
+        UIA -- Match Metadata (Salts) --> VR
+        VR -- Match Data --> UIA
+    end
+    U == Match Metadata (Salts) ==> UIA
+
+    S["S3-Storage"]
+    UIA -- Match Data ---> S
+    
+    RMQV["Validate Queue"]
+    UIA -- Match Data ---> RMQV
+```
