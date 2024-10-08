@@ -95,13 +95,13 @@ flowchart TB
 ```mermaid
 flowchart TB
     U["User"]
-    subgraph UI["User-Ingest Server"]
-        UIA["User-Ingest API"]
-        VR["Valve Replay Server"]
-        UIA -- Match Metadata (Salts) --> VR
-        VR -- Match Data --> UIA
-    end
+    UIA["User-Ingest API"]
+
     U == Match Metadata (Salts) ==> UIA
+
+    VR["Valve Replay Server"]
+    UIA -- Match Metadata (Salts) --> VR
+    VR -- Match Data --> UIA
 
     S["S3-Storage"]
     UIA -- Match Data ---> S
