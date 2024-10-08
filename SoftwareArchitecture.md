@@ -64,9 +64,9 @@ flowchart TB
 
 ### HLTV-Spectator
 ```mermaid
-flowchart TB
+flowchart BT
     subgraph M["Match Manager"]
-        direction TB
+        direction LR
         DB["Database"]
         MM["Match Manager"]
         MM === DB
@@ -78,17 +78,15 @@ flowchart TB
         SB2["Spectator Bot 2"]
     end
 
-    subgraph RMQ["RabbitMQ"]
+    subgraph E["External"]
         direction BT
-        EQ["Error Queue"]
         SQ["Spectate Queue"]
-        SQ -- NACK --> EQ
     end
 
-    M -- Matches to Spectate --> RMQ
-    RMQ -- Match to Spectate --> SB
-    SB -- ACK / NACK --> RMQ
-    RMQ -- Failed Matches --> M
+    M -- Matches to Spectate --> SQ
+    SQ -- Match to Spectate --> SB
+    SB -- ACK / NACK --> SQ
+    SQ -- Failed Matches --> M
 ```
 
 ### User-Ingest Server
@@ -103,9 +101,11 @@ flowchart TB
     UIA -- Match Metadata (Salts) --> VR
     VR -- Match Data --> UIA
 
-    S["S3-Storage"]
+
+    subgraph E["External"]
+        S["S3-Storage"]
+        RMQV["Validate Queue"]
+    end
     UIA -- Match Data ---> S
-    
-    RMQV["Validate Queue"]
     UIA -- Match Data ---> RMQV
 ```
