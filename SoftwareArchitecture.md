@@ -18,40 +18,29 @@ flowchart TB
             Active Matches, HLTV-Stream, Metadata
         "]
         DS -- Match Data --> S
-        DS -- Add to Validate Queue --> RMQV
+        DS -- Add to Ingest Queue --> RMQI
         DS -- Publish Events --> RMQPS
         
         H["Housekeeper"]
-        H == Scan for unprocessed old Matches === S
-        H == Compress and Archive old Matches === S
-        H -- Add to Validate Queue --> RMQV
+        H == Scan for unprocessed old Matches<br>Compress and Archive old Matches === S
+        H -- Add to Ingest Queue --> RMQI
         
         subgraph RMQ["RabbitMQ"]
-            RMQV["Validate Queue"]
-            RMQI["Ingest Queue (Exchange)"]
+            RMQI["Ingest Queue"]
             RMQPS["Pub/Sub"]
         end
         
-        V["Validator & Parser"]
-        RMQV -- Get from Validate Queue --> V
+        V["Validator & Parser & Ingestor"]
+        RMQI -- Get from Ingest Queue --> V
         S -- Match Data --> V
         V -- Parsed Match Data --> S
-        V -- Add to Parser Queue --> RMQI
-        
-        subgraph I["Ingest Workers"]
-            direction TB
-            I1["DBMS 1 Ingest Worker"]
-            I2["DBMS 2 Ingest Worker"]
-        end
-        RMQI -- Get from Ingest Queue --> I
-        S -- Parsed Match Data --> I
         
         subgraph DB["Databases"]
             direction TB
             DB1["DBMS 1"]
             DB2["DBMS 2"]
         end
-        I -- Ingest Data --> DB
+        V -- Ingest Data --> DB
     end
     
     E["External"]
@@ -104,8 +93,8 @@ flowchart TB
 
     subgraph E["External"]
         S["S3-Storage"]
-        RMQV["Validate Queue"]
+        RMQI["Ingest Queue"]
     end
     UIA -- Match Data ---> S
-    UIA -- Match Data ---> RMQV
+    UIA -- Match Data ---> RMQI
 ```
