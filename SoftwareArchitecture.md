@@ -37,8 +37,8 @@ flowchart TB
         
         subgraph DB["Databases"]
             direction TB
-            DB1["DBMS 1"]
-            DB2["DBMS 2"]
+            DB1[("DBMS 1")]
+            DB2[("DBMS 2")]
         end
         V -- Ingest Data --> DB
     end
